@@ -19,7 +19,6 @@ Since the original yowsup project has not been maintained for a long time, we fo
 
 
 ## Discussion Groups
- * telegram:  [zowsup](https://t.me/+au1dTQz7jyU0YjU5)
 
 
 ## What's New 0.6.0
