@@ -18,9 +18,6 @@ Since the original yowsup project has not been maintained for a long time, we fo
 ```
 
 
-## Discussion Groups
-
-
 ## What's New 0.6.0
  * new commands mdlink and mdremove
  * linkcode for companion device registration
