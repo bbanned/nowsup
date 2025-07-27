@@ -9,8 +9,7 @@ class LiteBroadcastStore(TaskMsgStore):
         :type dbConn: Connection
         """
         self.dbConn = dbConn        
-
-        dbConn.execute("DROP TABLE IF EXISTS broadcast ")
+        
         dbConn.execute("CREATE TABLE IF NOT EXISTS broadcast(_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "sender TEXT,"
                 "name TEXT,"

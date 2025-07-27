@@ -1042,26 +1042,30 @@ class SendLayer(YowInterfaceLayer):
             MessageMetaAttributes(id=self.bot.idType,recipient=Jid.normalize(to),timestamp=int(time.time()))            
         )        
 
-
         self.ackQueue.append(messageEntity.getId())
-        self.logger.info("Send Msg (ID=%s)" % messageEntity.getId())
 
-        target = Jid.normalize(to.split(",")[0])
-        if target.endswith("@g.us"):
-            entity = OutgoingChatstateProtocolEntity(ChatstateProtocolEntity.STATE_TYPING, target,Jid.normalize(self.bot.botId))
+        if "broadcast" in options:
+            #广播@broadcast发送            
+            self.logger.info("Send broadcast msg (ID=%s)" % messageEntity.getId())           
+            messageEntity.to = options["bcid"]
+            messageEntity.phash = options["phash"]            
+            self.toLower(messageEntity)    
         else:
-            entity = OutgoingChatstateProtocolEntity(ChatstateProtocolEntity.STATE_TYPING, target)
-
-        self.toLower(entity)
-        time.sleep(1)
-        self.toLower(messageEntity)   
-
-        self.eventCallback(wsend_pb2.BotEvent.Event.MSG_LOG,msgLog={
-                'msgId':messageEntity.getId(),                
-                'sender':self.bot.botId,
-                "target":to[0:Jid.normalize(to).rfind("@",0)],                
-                'status': wsend_pb2.MsgLogItem.Status.Value("EXECUTED")                
-            })      
+            self.logger.info("Send Msg (ID=%s)" % messageEntity.getId())
+            target = Jid.normalize(to.split(",")[0])
+            if target.endswith("@g.us"):
+                entity = OutgoingChatstateProtocolEntity(ChatstateProtocolEntity.STATE_TYPING, target,Jid.normalize(self.bot.botId))
+            else:
+                entity = OutgoingChatstateProtocolEntity(ChatstateProtocolEntity.STATE_TYPING, target)
+            self.toLower(entity)
+            time.sleep(1)
+            self.toLower(messageEntity)   
+            self.eventCallback(wsend_pb2.BotEvent.Event.MSG_LOG,msgLog={
+                    'msgId':messageEntity.getId(),                
+                    'sender':self.bot.botId,
+                    "target":to[0:Jid.normalize(to).rfind("@",0)],                
+                    'status': wsend_pb2.MsgLogItem.Status.Value("EXECUTED")                
+                })      
         
         if "waitMsgId" in options:
             self.ctxMap[options["ctxId"]]["msgId"] = messageEntity.getId()
@@ -1077,6 +1081,11 @@ class SendLayer(YowInterfaceLayer):
         return self.ctxMap[ctxId][key]
     
     def sendMsg(self,cmdParams,options):        
+
+        if "broadcast" in options:
+            bcid,phash = self.db._store.addBroadcast(jids = cmdParams[0],senderJid=self.bot_api.botId)
+            options["bcid"] = bcid
+            options["phash"] = phash            
 
         if "waitMsgId" not in options:
             self.assureContactsAndSend(cmdParams,options,send_func=self.sendMsgDirect,redo_func=self.sendMsg)            

@@ -9,9 +9,7 @@ class LiteAppStateStore(AppStateStore):
         :type dbConn: Connection
         """
         self.dbConn = dbConn
-
-        dbConn.execute("DROP TABLE IF EXISTS app_state_keys")
-
+        
         dbConn.execute("CREATE TABLE IF NOT EXISTS app_state_keys(_id INTEGER PRIMARY KEY AUTOINCREMENT,key_id BLOB,key_data BLOB,fingerprint BLOB,timestamp INTEGER);")                
 
     def addAppStateKeys(self, keys):

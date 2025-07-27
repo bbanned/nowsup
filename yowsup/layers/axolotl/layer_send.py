@@ -158,8 +158,6 @@ class AxolotlSendLayer(AxolotlBaseLayer):
         logger.debug("sendEncEntities(node=[omitted], encEntities=[omitted], participant=%s)" % participant)
 
         message_attrs = MessageMetaAttributes.from_message_protocoltreenode(node)
-
-
         message_attrs.participant = participant        
         messageEntity = EncryptedMessageProtocolEntity(
             encEntities,
@@ -221,9 +219,6 @@ class AxolotlSendLayer(AxolotlBaseLayer):
         mediaType = protoNode["mediatype"]
         return self.sendEncEntities(node, [EncProtocolEntity(EncProtocolEntity.TYPE_MSG if ciphertext.__class__ == WhisperMessage else EncProtocolEntity.TYPE_PKMSG, 2, ciphertext.serialize(), mediaType)])
 
-
-
-
     def ensureSessionsAndSendToContacts(self, node, jids):
 
         logger.debug("ensureSessionsAndSendToContacts(node=[omitted], jids=%s)" % jids)
@@ -250,9 +245,7 @@ class AxolotlSendLayer(AxolotlBaseLayer):
                 else:
                     self.sendToContactsWithSessions(node, allJids)
 
-
         if len(jidsNoSession):
-
             self.getKeysFor(jidsNoSession, lambda successJids, errors: on_get_keys_success(node, successJids, errors))
 
         else:
@@ -284,7 +277,6 @@ class AxolotlSendLayer(AxolotlBaseLayer):
         targetJid = node["to"]
         db = self.getStack().getProp("profile").axolotl_manager
         tctoken = db._store.getTcToken(targetJid)        
-
         protoNode = node.getChild("proto")
         encEntities = []       
         messageData = protoNode.getData()        
@@ -346,24 +338,29 @@ class AxolotlSendLayer(AxolotlBaseLayer):
 
     def ensureSessionsAndSendToGroup(self, node, jids):
         logger.debug("ensureSessionsAndSendToGroup(node=[omitted], jids=%s)" % jids)
-        jidsNoSession = []
 
+        allJids = []
+        jidsNoSession = []    
+        standardJids = []
         for jid in jids:
-            if not self.manager.session_exists(jid.split('@')[0]):
-                jidsNoSession.append(jid)
+            standardJids.append(jid.replace(".0:0","").replace(".1:",":"))
+
+        for jid in standardJids:
+            if not self.manager.session_exists(jid.split('@')[0]):          
+                jidsNoSession.append(jid) #如果是xxxx.0:0, 规范是不加任何后缀，否则解码后就会对应不上)        
+            else:
+                allJids.append(jid)
 
         def on_get_keys_success(node, success_jids, errors):
             if len(errors):
                 self.on_get_keys_process_errors(errors)
-
-            self.sendToGroupWithSessions(node, success_jids)
-                
-        
-
+            allJids.extend(success_jids)
+            self.sendToGroupWithSessions(node, allJids)
+                        
         if len(jidsNoSession):
             self.getKeysFor(jidsNoSession, lambda successJids, errors: on_get_keys_success(node, successJids, errors))
         else:
-            self.sendToGroupWithSessions(node, jids)
+            self.sendToGroupWithSessions(node, standardJids)
 
     def sendToGroup(self, node, retryReceiptEntity = None):
         """
@@ -385,13 +382,9 @@ class AxolotlSendLayer(AxolotlBaseLayer):
                          retryReceiptEntity.getRetryCount(), retryReceiptEntity.getRetryJid())
                       ) if retryReceiptEntity is not None else None)
 
-        groupJid = node["to"]
-        
+        groupJid = node["to"]        
         ownJid = self.getLayerInterface(YowAuthenticationProtocolLayer).getUsername(True)
-
         senderKeyRecord = self.manager.load_senderkey(node["to"])
-
-        
 
         def sendToGroup(resultNode, requestEntity):
             groupInfo = InfoGroupsResultIqProtocolEntity.fromProtocolTreeNode(resultNode)
